@@ -1,71 +1,71 @@
-# Visão do Produto
+# Visão do Produto — TapFolio
 
-> Adapte este documento para o produto específico do seu projeto.
-> Este é um template de visão de produto para ser preenchido.
+**Data:** 2026-05
+**Status:** ativo
 
 ---
 
 ## Declaração de Visão
 
-**Para** [público-alvo]
-**que** [necessidade ou problema]
-**o** [nome do produto]
-**é** [categoria do produto]
-**que** [benefício principal]
-**diferente de** [alternativa atual]
-**nosso produto** [diferencial único]
+**Para** criadores de conteúdo, desenvolvedores, freelancers e profissionais
+**que** precisam compartilhar múltiplos links e canais em um único lugar
+**o** TapFolio
+**é** uma plataforma de página de perfil com links centralizados
+**que** permite criar, personalizar e compartilhar uma página única com todos os seus links importantes
+**diferente de** Linktree e similares (que cobram por personalização básica ou limitam funcionalidades no plano gratuito)
+**nosso produto** é open source, auto-hospedável e com personalização completa sem barreiras de paywall
 
 ---
 
 ## Problema que Resolve
 
-Descreva o problema real que o produto resolve:
+A fragmentação de presença digital é uma realidade: Instagram, GitHub, LinkedIn, portfólio, WhatsApp, loja, cursos, projetos — cada um em um lugar diferente.
 
-- Qual é a dor do usuário?
-- Como ele resolve hoje (alternativa atual)?
-- Por que a alternativa atual não é suficiente?
+- **Dor do usuário:** compartilhar 8 links diferentes em 8 bio diferentes, perder cliques e oportunidades
+- **Alternativa atual:** Linktree, Beacons, Milkshake — todos com limitações no plano gratuito
+- **Por que não resolvem:** cobram por Analytics, personalização de temas e domínio customizado
 
 ---
 
 ## Proposta de Valor
 
-O que o produto entrega de valor para:
-
 | Stakeholder | Valor entregue |
 |---|---|
-| Usuário final | [benefício direto] |
-| Administrador | [eficiência operacional] |
-| Negócio | [retorno, crescimento, redução de custo] |
+| Usuário final | Uma URL pra compartilhar tudo, sem limite de links, com tema personalizado |
+| Criador de conteúdo | Analytics de cliques para entender de onde vem o tráfego |
+| Desenvolvedor | Projeto moderno e bem documentado para estudar arquitetura fullstack |
 
 ---
 
 ## Funcionalidades Principais
 
-Liste as funcionalidades que definem o produto (não o roadmap):
-
-1. **[Feature 1]** — [descrição em uma linha]
-2. **[Feature 2]** — [descrição em uma linha]
-3. **[Feature 3]** — [descrição em uma linha]
+1. **Perfil personalizado** — foto, bio, nome de usuário e tema de cores
+2. **Lista de links** — adicionar, reordenar, ativar/desativar links
+3. **Analytics de cliques** — quantos cliques cada link recebeu
+4. **Temas visuais** — temas prontos + personalização de cores
+5. **Responsividade total** — mobile-first, funciona em qualquer dispositivo
+6. **Compartilhamento fácil** — URL pública no formato `tapfolio.app/username`
 
 ---
 
 ## Métricas de Sucesso
 
-Como mediremos que o produto está sendo bem-sucedido:
-
-| Métrica | Baseline | Meta 3 meses | Meta 12 meses |
-|---|---|---|---|
-| [métrica 1] | [valor atual] | [meta] | [meta] |
-| [métrica 2] | [valor atual] | [meta] | [meta] |
+| Métrica | Meta 3 meses | Meta 12 meses |
+|---|---|---|
+| Perfis criados | 100 | 1.000 |
+| Uptime | 99.5% | 99.9% |
+| LCP (Core Web Vitals) | < 2.5s | < 1.5s |
+| Tempo de criação de perfil | < 5 minutos | < 2 minutos |
 
 ---
 
-## Fora de Escopo
+## Fora de Escopo (v1.0)
 
-O que NÃO faz parte do produto (para alinhar expectativas):
-
-- [item fora do escopo 1]
-- [item fora do escopo 2]
+- Monetização e pagamentos
+- Domínio customizado por usuário
+- Editor de página drag-and-drop
+- Integração com redes sociais (OAuth)
+- App mobile nativo
 
 ---
 
@@ -73,10 +73,14 @@ O que NÃO faz parte do produto (para alinhar expectativas):
 
 ```
 Restrições:
-- [restrição técnica, orçamentária ou de prazo]
+- Projeto de estudo com foco em qualidade de código e arquitetura
+- Deploy em VPS Linux com Docker (sem Kubernetes)
+- PostgreSQL como único banco de dados
 
 Premissas:
-- [premissa que precisa ser verdadeira para o produto funcionar]
+- Usuários têm email e senha para autenticação
+- O username é único e imutável após criação
+- Cada usuário tem exatamente um perfil público
 ```
 
 ---

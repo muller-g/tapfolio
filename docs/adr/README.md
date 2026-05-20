@@ -42,6 +42,7 @@ Siga a numeração sequencial. Nunca reutilize números.
 | Número | Título | Status | Data |
 |---|---|---|---|
 | [ADR-001](001-template-repository-structure.md) | Estrutura do Template Repository | accepted | 2026-05 |
+| [ADR-002](002-stack-selection.md) | Seleção de Stack — Laravel + Next.js + PostgreSQL | accepted | 2026-05 |
 
 ---
 

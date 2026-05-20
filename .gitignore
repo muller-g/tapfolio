@@ -1,0 +1,90 @@
+# =============================================================================
+# TapFolio — .gitignore
+# Laravel + Next.js + Docker
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Ambiente e segredos (NUNCA commitar)
+# -----------------------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+*.pem
+*.key
+*.crt
+
+# -----------------------------------------------------------------------------
+# Laravel (backend/)
+# -----------------------------------------------------------------------------
+backend/vendor/
+backend/node_modules/
+backend/.env
+backend/storage/app/public/
+backend/storage/framework/cache/
+backend/storage/framework/sessions/
+backend/storage/framework/testing/
+backend/storage/framework/views/
+backend/storage/logs/
+backend/bootstrap/cache/
+backend/public/hot
+backend/public/storage
+
+# -----------------------------------------------------------------------------
+# Next.js (frontend/)
+# -----------------------------------------------------------------------------
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# -----------------------------------------------------------------------------
+# Docker
+# -----------------------------------------------------------------------------
+docker-data/
+*.log
+
+# -----------------------------------------------------------------------------
+# Sistema Operacional
+# -----------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# -----------------------------------------------------------------------------
+# IDEs e Editores
+# -----------------------------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+*.suo
+*.user
+.history/
+
+# -----------------------------------------------------------------------------
+# Cobertura de Testes e CI
+# -----------------------------------------------------------------------------
+backend/coverage/
+frontend/coverage/
+.phpunit.cache
+.phpunit.result.cache
+
+# -----------------------------------------------------------------------------
+# Miscelânea
+# -----------------------------------------------------------------------------
+*.zip
+*.tar.gz
+tmp/
+temp/

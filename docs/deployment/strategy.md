@@ -1,6 +1,8 @@
-# Estratégia de Deploy
+# Estratégia de Deploy — TapFolio
 
-Abordagem de deploy, ambientes e CI/CD para projetos fullstack.
+**Infraestrutura:** VPS Linux + Docker Compose
+**CI/CD:** GitHub Actions
+**Serviços:** Laravel API + Next.js + PostgreSQL + Redis + MinIO + Nginx
 
 ---
 

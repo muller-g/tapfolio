@@ -1,0 +1,53 @@
+services:
+  # Overrides de desenvolvimento — use com:
+  # docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+  backend:
+    build:
+      target: development
+    volumes:
+      - ./backend:/var/www/html
+      - /var/www/html/vendor
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      target: development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    command: npm run dev
+
+  # Mailpit — captura emails em dev (acesse http://localhost:8025)
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - tapfolio
+
+  # MinIO Console — acessível em http://localhost:9001
+  minio:
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  # PostgreSQL — acessível diretamente em dev
+  postgres:
+    ports:
+      - "5432:5432"
+
+  # Redis — acessível diretamente em dev
+  redis:
+    ports:
+      - "6379:6379"

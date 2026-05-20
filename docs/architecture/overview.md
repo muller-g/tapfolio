@@ -1,196 +1,209 @@
-# Visão Geral da Arquitetura
+# Visão Geral da Arquitetura — TapFolio
 
-> Este documento descreve a arquitetura geral do template e como projetos derivados devem ser estruturados.
-> Adapte conforme a stack e contexto do seu projeto.
+**Stack:** Laravel 11 (API) + Next.js 14 (Frontend) + PostgreSQL + Redis + Docker
+**Data:** 2026-05
+**Status:** ativo
 
 ---
 
 ## Princípios Arquiteturais
 
-1. **Separação de responsabilidades** — cada camada tem um papel claro
-2. **Dependências na direção certa** — camadas internas não conhecem camadas externas
-3. **Extensibilidade** — novos módulos devem ser adicionados sem modificar os existentes
-4. **Testabilidade** — toda lógica de negócio deve ser testável sem infraestrutura
-5. **Observabilidade** — todo sistema deve ter logs, métricas e alertas
+1. **Separação de responsabilidades** — API stateless, frontend desacoplado
+2. **Dependências na direção certa** — controllers finos, services ricos
+3. **Testabilidade** — toda lógica de negócio testável sem infraestrutura
+4. **Observabilidade** — logs estruturados, health check, métricas
+5. **Segurança por padrão** — autenticação JWT, rate limiting, HTTPS
 
 ---
 
 ## Visão Geral do Sistema
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         Clientes                            │
-│          Web App    Mobile App    Integração Externa         │
-└──────────────────┬──────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                      Clientes                        │
+│          Browser (Next.js)    Mobile (futuro)        │
+└──────────────────┬───────────────────────────────────┘
                    │ HTTPS
-┌──────────────────▼──────────────────────────────────────────┐
-│                    CDN / Load Balancer                       │
-│                    (Cloudflare, AWS ALB)                     │
-└──────────────────┬──────────────────────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────────────────────┐
-│                      API Gateway / Nginx                     │
-│              (Rate Limiting, SSL Termination)                │
-└────────┬───────────────────────────────┬────────────────────┘
-         │                               │
-┌────────▼─────────┐           ┌─────────▼────────┐
-│  Backend API      │           │  Frontend App     │
-│  Laravel/NestJS   │           │  Next.js/React    │
-│  Port: 8000       │           │  Port: 3000       │
-└────────┬─────────┘           └──────────────────┘
-         │
-┌────────▼──────────────────────────────────────┐
-│               Serviços de Dados                │
-├──────────────┬──────────────┬─────────────────┤
-│   MySQL /    │   Redis      │   Armazenamento  │
-│   PostgreSQL │   (Cache,    │   (S3, MinIO)    │
-│              │   Filas,     │                  │
-│              │   Sessão)    │                  │
-└──────────────┴──────────────┴─────────────────┘
-         │
-┌────────▼──────────────────────────────────────┐
-│            Serviços Externos                   │
-│  Email | SMS | Pagamento | Webhooks | APIs     │
-└────────────────────────────────────────────────┘
+┌──────────────────▼───────────────────────────────────┐
+│                    Nginx (Reverse Proxy)              │
+│         SSL Termination + Rate Limiting Básico        │
+│         /api/* → Laravel  |  /* → Next.js            │
+└──────────┬────────────────────────┬──────────────────┘
+           │                        │
+┌──────────▼──────────┐   ┌─────────▼────────┐
+│   Laravel 11 API    │   │  Next.js 14 App  │
+│   Port: 8000        │   │  Port: 3000      │
+│   PHP 8.3           │   │  TypeScript      │
+│   Sanctum (JWT)     │   │  App Router      │
+│   Laravel Queues    │   │  Tailwind CSS    │
+└──────────┬──────────┘   └──────────────────┘
+           │
+┌──────────▼──────────────────────────────────┐
+│           Serviços de Dados                  │
+├──────────────┬──────────────┬───────────────┤
+│  PostgreSQL  │    Redis     │   MinIO        │
+│  Port: 5432  │  Port: 6379  │  Port: 9000   │
+│  Dados       │  Cache +     │  Uploads      │
+│  principais  │  Filas +     │  (avatares)   │
+│              │  Rate limit  │               │
+└──────────────┴──────────────┴───────────────┘
+           │
+┌──────────▼──────────────────────────────────┐
+│           Serviços Externos                  │
+│  SMTP (email) | Sentry (erros)              │
+└─────────────────────────────────────────────┘
 ```
 
 ---
 
-## Camadas da Aplicação Backend
+## Estrutura de Pastas
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   Presentation Layer                     │
-│   Controllers • Route Handlers • WebSocket Handlers     │
-│   Responsabilidade: receber request, retornar response  │
-├─────────────────────────────────────────────────────────┤
-│                   Application Layer                      │
-│          Services • Use Cases • DTOs • Events           │
-│       Responsabilidade: orquestrar lógica de negócio    │
-├─────────────────────────────────────────────────────────┤
-│                     Domain Layer                         │
-│        Entities • Value Objects • Domain Events         │
-│   Responsabilidade: regras de negócio puras (sem I/O)   │
-├─────────────────────────────────────────────────────────┤
-│                  Infrastructure Layer                    │
-│     Repositories • ORM Models • External APIs • Cache   │
-│       Responsabilidade: acesso a dados e externos       │
-└─────────────────────────────────────────────────────────┘
+tapfolio/
+├── backend/                 # Laravel 11 API
+│   ├── app/
+│   │   ├── Http/
+│   │   │   ├── Controllers/Api/  # Controllers finos
+│   │   │   ├── Requests/         # FormRequests (validação)
+│   │   │   └── Resources/        # API Resources (transformação)
+│   │   ├── Services/             # Lógica de negócio
+│   │   ├── Repositories/         # Acesso a dados
+│   │   ├── Models/               # Eloquent models
+│   │   └── Events/ + Listeners/  # Side effects assíncronos
+│   ├── database/
+│   │   ├── migrations/
+│   │   └── factories/
+│   └── tests/
+│       ├── Unit/
+│       └── Feature/
+│
+├── frontend/                # Next.js 14 App Router
+│   ├── src/
+│   │   ├── app/             # Rotas (App Router)
+│   │   ├── components/
+│   │   │   ├── ui/          # Primitivos (Button, Input)
+│   │   │   ├── layout/      # Header, Footer
+│   │   │   └── features/    # Componentes de domínio
+│   │   ├── hooks/           # Custom hooks
+│   │   ├── services/        # Chamadas à API
+│   │   ├── stores/          # Zustand (estado global)
+│   │   └── types/           # TypeScript types
+│   └── public/
+│
+├── nginx/
+│   └── nginx.conf           # Configuração do reverse proxy
+│
+├── docker-compose.yml       # Orquestração dev + prod
+├── docker-compose.dev.yml   # Overrides de desenvolvimento
+└── .env.example             # Variáveis necessárias
 ```
 
 ---
 
-## Estratégia de Autenticação
+## Camadas do Backend (Laravel)
 
 ```
-Tipo: JWT (JSON Web Tokens) sem estado
+┌─────────────────────────────────────────────────────┐
+│               Presentation Layer                     │
+│   Controllers (finos) + FormRequests + Resources    │
+│   Responsabilidade: receber request, validar input  │
+│                     retornar response formatada     │
+├─────────────────────────────────────────────────────┤
+│               Application Layer                      │
+│          Services + Events + Listeners              │
+│       Responsabilidade: orquestrar negócio          │
+│       Ex: ProfileService, LinkService               │
+├─────────────────────────────────────────────────────┤
+│               Domain Layer                           │
+│          Models (Eloquent) + Enums                  │
+│   Responsabilidade: representar entidades e regras  │
+├─────────────────────────────────────────────────────┤
+│             Infrastructure Layer                     │
+│       Repositories + External APIs + Cache          │
+│       Responsabilidade: acesso a dados              │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## Autenticação
+
+```
+Tipo: Laravel Sanctum — tokens de API stateless
 
 Access Token:
   - Expiração: 1 hora
-  - Payload: user_id, email, roles
-  - Armazenamento cliente: memória (não localStorage)
+  - Header: Authorization: Bearer {token}
+  - Armazenamento no cliente: memória (não localStorage)
 
 Refresh Token:
   - Expiração: 30 dias
   - Armazenamento: HttpOnly Cookie
-  - Rotação a cada uso (mais seguro)
 
-Para Laravel: Sanctum (SPA) ou Passport (OAuth)
-Para NestJS: passport-jwt + estratégia customizada
+Endpoints:
+  POST /api/v1/auth/register
+  POST /api/v1/auth/login
+  POST /api/v1/auth/refresh
+  POST /api/v1/auth/logout
+  POST /api/v1/auth/forgot-password
+  POST /api/v1/auth/reset-password
 ```
+
+---
+
+## Endpoints Principais (v1.0)
+
+```
+Público:
+  GET  /api/v1/profiles/:username        → perfil público
+  POST /api/v1/links/:id/click           → registrar clique
+
+Autenticado:
+  GET  /api/v1/profile                   → meu perfil
+  PUT  /api/v1/profile                   → atualizar perfil
+  POST /api/v1/profile/avatar            → upload avatar
+
+  GET  /api/v1/links                     → meus links
+  POST /api/v1/links                     → criar link
+  PUT  /api/v1/links/:id                 → editar link
+  DELETE /api/v1/links/:id               → excluir link
+  PUT  /api/v1/links/reorder             → reordenar links
+
+  GET  /api/v1/analytics/summary         → resumo de cliques
+  GET  /api/v1/analytics/links           → cliques por link
+```
+
+---
+
+## Decisões de Tecnologia
+
+| Aspecto | Escolha | Motivo |
+|---|---|---|
+| Backend API | Laravel 11 (PHP 8.3) | Ecossistema maduro, Sanctum nativo, Eloquent ORM |
+| Frontend | Next.js 14 (App Router) | SSG para perfis públicos, TypeScript nativo |
+| Banco de dados | PostgreSQL 16 | Robustez, suporte a JSON, melhor para escalar |
+| Cache / Filas | Redis | Laravel Queue driver nativo, rate limiting |
+| Armazenamento | MinIO (self-hosted) | Compatible com S3, gratuito em VPS |
+| Reverse proxy | Nginx | SSL termination, roteamento /api vs /* |
+| Containers | Docker + Compose | Padronização de ambiente dev → prod |
+| CI/CD | GitHub Actions | Integração nativa com o repositório |
+| Monitoramento de erros | Sentry | SDK nativo para Laravel e Next.js |
 
 ---
 
 ## Estratégia de Cache
 
 ```
-Camadas:
-  L1 — Application cache (in-memory, processo)
-       TTL: segundos a minutos
-       Uso: dados ultra-frequentes, config da aplicação
+Redis — L2 cache:
+  - Perfis públicos: TTL 5 minutos (alta leitura, baixa escrita)
+  - Rate limiting de login: por IP, janela de 15 minutos
+  - Contagem de cliques: buffer antes de persistir no banco
 
-  L2 — Redis
-       TTL: minutos a horas
-       Uso: resultados de queries, sessões, filas, rate limit
-
-  L3 — HTTP Cache (CDN, browser)
-       TTL: horas a dias
-       Uso: assets estáticos, respostas GET públicas
-
-Invalidação:
-  - Tag-based: invalidar por domínio ao atualizar
-  - Time-based: TTL adequado para cada tipo de dado
-  - Event-based: invalidar ao receber evento de atualização
+Next.js ISR (Incremental Static Regeneration):
+  - Páginas de perfil público geradas estaticamente
+  - Revalidação a cada 60 segundos
+  - Cache invalidado via revalidatePath() ao atualizar perfil
 ```
-
----
-
-## Estratégia de Filas
-
-```
-Workers assíncronos para:
-  - Envio de emails e notificações
-  - Geração de PDFs e relatórios
-  - Integração com APIs externas (retry automático)
-  - Processamento de imagens
-  - Webhooks recebidos
-
-Prioridades:
-  high    → pagamentos, webhooks críticos
-  default → emails transacionais, notificações
-  low     → relatórios, exports, processamento batch
-
-Driver: Redis (desenvolvimento) → SQS/RabbitMQ (produção escalável)
-```
-
----
-
-## Estratégia de Escalabilidade
-
-```
-Horizontal (recomendada):
-  - Múltiplas instâncias do backend (load balancer)
-  - Session em Redis (não em arquivo local)
-  - Armazenamento de arquivo em S3 (não em disco local)
-  - Workers em instâncias separadas
-
-Vertical (quando necessário):
-  - Aumento de CPU/memória para banco de dados
-  - Connection pooling para banco (PgBouncer)
-```
-
----
-
-## Decisões de Tecnologia Padrão
-
-| Aspecto | Padrão Recomendado | Alternativa |
-|---|---|---|
-| Backend API | NestJS (TypeScript) | Laravel (PHP) |
-| Frontend Web | Next.js | React + Vite |
-| Banco Principal | PostgreSQL | MySQL |
-| Cache/Fila | Redis | — |
-| Containers | Docker + Compose | — |
-| CI/CD | GitHub Actions | GitLab CI |
-| Deploy | VPS + Docker | AWS ECS / Railway |
-| Monitoramento | Sentry + Uptime | Datadog |
-| Armazenamento | AWS S3 | MinIO (self-hosted) |
-
----
-
-## Adicionando à Arquitetura
-
-Para adicionar um novo módulo ao sistema:
-
-1. Criar a estrutura de pastas do módulo
-2. Definir o schema de banco (migration)
-3. Criar a entidade/model
-4. Criar o repository com interface
-5. Criar o service com lógica de negócio
-6. Criar o controller com endpoints
-7. Registrar rotas e módulo
-8. Criar testes
-9. Atualizar documentação de API
-10. Criar ADR se houver decisão arquitetural relevante
 
 ---
 
