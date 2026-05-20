@@ -52,10 +52,9 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 
 COPY . .
-RUN composer dump-autoload --optimize \
-    && php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache
+# Apenas otimiza o autoloader — cache de config/route/view rodam no entrypoint
+# com as variáveis de ambiente reais do container
+RUN composer dump-autoload --optimize
 
 # -----------------------------------------------------------------------------
 # Stage production: imagem final mínima
@@ -91,6 +90,7 @@ USER www
 
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s \
-    CMD curl -f http://localhost:8000/api/health || exit 1
+    CMD curl -f http://localhost:8000/up || exit 1
 
+ENTRYPOINT ["sh", "/var/www/html/docker-entrypoint.sh"]
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
