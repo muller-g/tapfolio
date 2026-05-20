@@ -63,12 +63,23 @@ RUN composer dump-autoload --optimize \
 FROM php:8.3-fpm-alpine AS production
 
 RUN apk add --no-cache \
-    curl \
-    libpq \
-    libpng \
-    libjpeg-turbo \
-    libwebp \
+        curl \
+        libpq \
+        libpng \
+        libjpeg-turbo \
+        libwebp \
+    && apk add --no-cache --virtual .build-deps \
+        $PHPIZE_DEPS \
+        linux-headers \
+        libpq-dev \
+        libpng-dev \
+        libjpeg-turbo-dev \
+        libwebp-dev \
+    && docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-install pdo pdo_pgsql gd opcache pcntl \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del .build-deps \
     && addgroup -g 1000 -S www \
     && adduser -u 1000 -S www -G www
 
