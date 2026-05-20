@@ -48,27 +48,6 @@ A fragmentação de presença digital é uma realidade: Instagram, GitHub, Linke
 
 ---
 
-## Métricas de Sucesso
-
-| Métrica | Meta 3 meses | Meta 12 meses |
-|---|---|---|
-| Perfis criados | 100 | 1.000 |
-| Uptime | 99.5% | 99.9% |
-| LCP (Core Web Vitals) | < 2.5s | < 1.5s |
-| Tempo de criação de perfil | < 5 minutos | < 2 minutos |
-
----
-
-## Fora de Escopo (v1.0)
-
-- Monetização e pagamentos
-- Domínio customizado por usuário
-- Editor de página drag-and-drop
-- Integração com redes sociais (OAuth)
-- App mobile nativo
-
----
-
 ## Restrições e Premissas
 
 ```

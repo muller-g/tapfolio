@@ -32,7 +32,7 @@
            │                        │
 ┌──────────▼──────────┐   ┌─────────▼────────┐
 │   Laravel 11 API    │   │  Next.js 14 App  │
-│   Port: 8000        │   │  Port: 3000      │
+│   Port: 8000        │   │  Port: 3006      │
 │   PHP 8.3           │   │  TypeScript      │
 │   Sanctum (JWT)     │   │  App Router      │
 │   Laravel Queues    │   │  Tailwind CSS    │
