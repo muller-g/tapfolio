@@ -1,0 +1,374 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  PHP_VERSION: '8.2'
+
+jobs:
+  # ===========================================================================
+  # DETECÇÃO DE STACK
+  # ===========================================================================
+
+  detect-stack:
+    name: Detectar Stack
+    runs-on: ubuntu-latest
+    outputs:
+      has-node: ${{ steps.detect.outputs.has-node }}
+      has-php: ${{ steps.detect.outputs.has-php }}
+      has-docker: ${{ steps.detect.outputs.has-docker }}
+      is-nestjs: ${{ steps.detect.outputs.is-nestjs }}
+      is-nextjs: ${{ steps.detect.outputs.is-nextjs }}
+      is-laravel: ${{ steps.detect.outputs.is-laravel }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detectar stack do projeto
+        id: detect
+        run: |
+          echo "has-node=$([ -f package.json ] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "has-php=$([ -f composer.json ] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "has-docker=$([ -f docker-compose.yml ] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "is-laravel=$([ -f artisan ] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "is-nestjs=$([ -f package.json ] && grep -q '@nestjs/core' package.json && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "is-nextjs=$([ -f package.json ] && grep -q '"next"' package.json && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+  # ===========================================================================
+  # LINT E FORMATAÇÃO (NODE.JS)
+  # ===========================================================================
+
+  lint-node:
+    name: Lint e Formatação (Node.js)
+    runs-on: ubuntu-latest
+    needs: detect-stack
+    if: needs.detect-stack.outputs.has-node == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Verificar tipos TypeScript
+        run: npx tsc --noEmit
+        continue-on-error: false
+
+      - name: Lint com ESLint
+        run: npx eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 0
+        continue-on-error: false
+
+      - name: Verificar formatação com Prettier
+        run: npx prettier --check .
+        continue-on-error: false
+
+  # ===========================================================================
+  # TESTES (NODE.JS)
+  # ===========================================================================
+
+  test-node:
+    name: Testes (Node.js)
+    runs-on: ubuntu-latest
+    needs: detect-stack
+    if: needs.detect-stack.outputs.has-node == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Executar testes com cobertura
+        run: npm test -- --coverage --coverageReporters=text --coverageReporters=lcov
+        env:
+          NODE_ENV: test
+          CI: true
+
+      - name: Upload cobertura para Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          fail_ci_if_error: false
+
+      - name: Verificar threshold de cobertura
+        run: |
+          COVERAGE=$(cat coverage/coverage-summary.json | \
+            python3 -c "import json,sys; d=json.load(sys.stdin); print(d['total']['lines']['pct'])" 2>/dev/null || echo "0")
+          echo "Cobertura de linhas: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 70" | bc -l 2>/dev/null || echo 1) )); then
+            echo "::warning::Cobertura abaixo de 70%: ${COVERAGE}%"
+          fi
+
+  # ===========================================================================
+  # BUILD (NODE.JS)
+  # ===========================================================================
+
+  build-node:
+    name: Build (Node.js)
+    runs-on: ubuntu-latest
+    needs: [lint-node, test-node]
+    if: needs.detect-stack.outputs.has-node == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build da aplicação
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Upload artefato de build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-node-${{ github.sha }}
+          path: |
+            dist/
+            .next/
+            out/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # LINT E TESTES (PHP/LARAVEL)
+  # ===========================================================================
+
+  test-laravel:
+    name: Testes (Laravel)
+    runs-on: ubuntu-latest
+    needs: detect-stack
+    if: needs.detect-stack.outputs.is-laravel == 'true'
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: testing
+          MYSQL_USER: testing
+          MYSQL_PASSWORD: testing
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, redis, bcmath, gd
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Instalar dependências PHP
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Preparar ambiente de teste
+        run: |
+          cp .env.example .env.testing || cp .env.example .env
+          php artisan key:generate --env=testing
+          php artisan config:clear
+
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: testing
+          DB_USERNAME: testing
+          DB_PASSWORD: testing
+          REDIS_HOST: 127.0.0.1
+
+      - name: Executar migrations de teste
+        run: php artisan migrate --env=testing --force
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: testing
+          DB_USERNAME: testing
+          DB_PASSWORD: testing
+
+      - name: PHP Code Sniffer (PSR-12)
+        run: vendor/bin/phpcs --standard=PSR12 app/ --extensions=php
+        continue-on-error: true
+
+      - name: PHPStan — análise estática
+        run: vendor/bin/phpstan analyse app --level=5
+        continue-on-error: true
+
+      - name: Executar testes PHPUnit
+        run: php artisan test --coverage --min=70
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: testing
+          DB_USERNAME: testing
+          DB_PASSWORD: testing
+          REDIS_HOST: 127.0.0.1
+
+  # ===========================================================================
+  # AUDIT DE SEGURANÇA
+  # ===========================================================================
+
+  security-audit:
+    name: Audit de Segurança
+    runs-on: ubuntu-latest
+    needs: detect-stack
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js (para npm audit)
+        if: needs.detect-stack.outputs.has-node == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: npm audit
+        if: needs.detect-stack.outputs.has-node == 'true'
+        run: |
+          npm ci
+          npm audit --audit-level=critical
+        continue-on-error: true
+
+      - name: Setup PHP (para composer audit)
+        if: needs.detect-stack.outputs.has-php == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          tools: composer:v2
+
+      - name: composer audit
+        if: needs.detect-stack.outputs.has-php == 'true'
+        run: |
+          composer install --no-interaction --prefer-dist
+          composer audit
+        continue-on-error: true
+
+      - name: Verificar secrets expostos
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified
+        continue-on-error: true
+
+  # ===========================================================================
+  # VALIDAÇÃO DE ESTRUTURA
+  # ===========================================================================
+
+  validate-structure:
+    name: Validar Estrutura do Template
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tornar scripts executáveis
+        run: chmod +x scripts/*.sh 2>/dev/null || true
+
+      - name: Executar validate-structure.sh
+        run: |
+          if [[ -f scripts/validate-structure.sh ]]; then
+            ./scripts/validate-structure.sh || true
+          else
+            echo "validate-structure.sh não encontrado — pulando"
+          fi
+
+      - name: Executar check-project.sh
+        run: |
+          if [[ -f scripts/check-project.sh ]]; then
+            ./scripts/check-project.sh || true
+          else
+            echo "check-project.sh não encontrado — pulando"
+          fi
+
+  # ===========================================================================
+  # STATUS FINAL
+  # ===========================================================================
+
+  ci-status:
+    name: Status CI
+    runs-on: ubuntu-latest
+    needs: [lint-node, test-node, build-node, test-laravel, security-audit, validate-structure]
+    if: always()
+
+    steps:
+      - name: Verificar status de todos os jobs
+        run: |
+          echo "lint-node: ${{ needs.lint-node.result }}"
+          echo "test-node: ${{ needs.test-node.result }}"
+          echo "build-node: ${{ needs.build-node.result }}"
+          echo "test-laravel: ${{ needs.test-laravel.result }}"
+          echo "security-audit: ${{ needs.security-audit.result }}"
+          echo "validate-structure: ${{ needs.validate-structure.result }}"
+
+          # Falhar se qualquer job crítico falhou
+          if [[ "${{ needs.lint-node.result }}" == "failure" ]] || \
+             [[ "${{ needs.test-node.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-node.result }}" == "failure" ]] || \
+             [[ "${{ needs.test-laravel.result }}" == "failure" ]]; then
+            echo "::error::Um ou mais jobs críticos falharam"
+            exit 1
+          fi
+
+          echo "✓ CI passou com sucesso"

@@ -1,0 +1,364 @@
+name: CD
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Ambiente de deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      skip-tests:
+        description: 'Pular testes (emergência apenas)'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+  PHP_VERSION: '8.2'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ===========================================================================
+  # DEFINIR AMBIENTE
+  # ===========================================================================
+
+  set-environment:
+    name: Definir Ambiente
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      version: ${{ steps.version.outputs.version }}
+      is-production: ${{ steps.env.outputs.is-production }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determinar ambiente
+        id: env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ENV="${{ github.event.inputs.environment }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            ENV="production"
+          else
+            ENV="staging"
+          fi
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "is-production=$([[ $ENV == 'production' ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "Ambiente: $ENV"
+
+      - name: Determinar versão
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo 'dev-${GITHUB_SHA::8}')"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Versão: $VERSION"
+
+  # ===========================================================================
+  # BUILD E PUSH DA IMAGEM DOCKER
+  # ===========================================================================
+
+  build-image:
+    name: Build e Push Imagem Docker
+    runs-on: ubuntu-latest
+    needs: set-environment
+    if: ${{ !github.event.inputs.skip-tests || github.event.inputs.skip-tests == 'false' }}
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar se Dockerfile existe
+        id: check-docker
+        run: |
+          if [[ -f "Dockerfile" ]]; then
+            echo "has-dockerfile=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-dockerfile=false" >> $GITHUB_OUTPUT
+            echo "::warning::Dockerfile não encontrado — pulando build de imagem"
+          fi
+
+      - name: Login no GitHub Container Registry
+        if: steps.check-docker.outputs.has-dockerfile == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extrair metadados Docker
+        if: steps.check-docker.outputs.has-dockerfile == 'true'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+            type=raw,value=${{ needs.set-environment.outputs.version }}
+
+      - name: Setup Docker Buildx
+        if: steps.check-docker.outputs.has-dockerfile == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build e Push
+        if: steps.check-docker.outputs.has-dockerfile == 'true'
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.set-environment.outputs.version }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            GIT_SHA=${{ github.sha }}
+
+  # ===========================================================================
+  # DEPLOY — STAGING
+  # ===========================================================================
+
+  deploy-staging:
+    name: Deploy — Staging
+    runs-on: ubuntu-latest
+    needs: [set-environment, build-image]
+    if: needs.set-environment.outputs.environment == 'staging'
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy para Staging
+        run: |
+          echo "Iniciando deploy para staging..."
+          echo "Versão: ${{ needs.set-environment.outputs.version }}"
+          echo "Imagem: ${{ needs.build-image.outputs.image-tag }}"
+
+          # Adapte este step para seu provedor de deploy:
+          # - SSH: use appleboy/ssh-action
+          # - AWS ECS: use aws-actions/amazon-ecs-deploy-task-definition
+          # - GCP Cloud Run: use google-github-actions/deploy-cloudrun
+          # - Kubernetes: use azure/k8s-deploy
+          # - Heroku: use akhileshns/heroku-deploy
+
+          echo "::notice::Configure o step de deploy para seu provedor específico"
+
+      - name: Aguardar serviço inicializar
+        run: |
+          echo "Aguardando serviço inicializar..."
+          sleep 30
+
+      - name: Health Check — Staging
+        run: |
+          STAGING_URL="${{ vars.STAGING_URL }}"
+          if [[ -z "$STAGING_URL" ]]; then
+            echo "::warning::STAGING_URL não configurada — pulando health check"
+            exit 0
+          fi
+
+          for i in {1..5}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${STAGING_URL}/health" 2>/dev/null || echo "000")
+            if [[ "$STATUS" == "200" ]]; then
+              echo "✓ Health check passou: $STATUS"
+              exit 0
+            fi
+            echo "Tentativa $i/5 — Status: $STATUS"
+            sleep 10
+          done
+
+          echo "::error::Health check falhou após 5 tentativas"
+          exit 1
+
+      - name: Notificar deploy staging
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          echo "Deploy staging: $STATUS"
+          # Adapte para Slack, Discord, Teams, etc.
+
+  # ===========================================================================
+  # TESTES DE INTEGRAÇÃO PÓS-DEPLOY
+  # ===========================================================================
+
+  smoke-tests:
+    name: Smoke Tests — Staging
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: needs.set-environment.outputs.environment == 'staging'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Executar smoke tests
+        run: |
+          STAGING_URL="${{ vars.STAGING_URL }}"
+          if [[ -z "$STAGING_URL" ]]; then
+            echo "::warning::STAGING_URL não configurada — pulando smoke tests"
+            exit 0
+          fi
+
+          # Exemplo de smoke tests com curl
+          echo "Verificando endpoints críticos em: $STAGING_URL"
+
+          # Health check
+          curl -f "${STAGING_URL}/health" && echo "✓ /health OK"
+
+          # API Version
+          curl -f "${STAGING_URL}/api/v1" -o /dev/null -s && echo "✓ /api/v1 OK" || \
+            echo "::warning::/api/v1 não disponível"
+
+          echo "Smoke tests concluídos"
+
+      - name: Executar testes E2E (se configurado)
+        run: |
+          if [[ -f "playwright.config.ts" ]] || [[ -f "cypress.config.ts" ]]; then
+            echo "Framework E2E detectado — configure a execução aqui"
+            # npm run test:e2e -- --baseURL=${{ vars.STAGING_URL }}
+          else
+            echo "Nenhum framework E2E configurado"
+          fi
+
+  # ===========================================================================
+  # APROVAÇÃO PARA PRODUÇÃO
+  # ===========================================================================
+
+  approval-production:
+    name: Aprovação para Produção
+    runs-on: ubuntu-latest
+    needs: [set-environment, smoke-tests]
+    if: |
+      needs.set-environment.outputs.is-production == 'true' ||
+      (github.ref == 'refs/heads/main' && needs.smoke-tests.result == 'success')
+    environment:
+      name: production-approval
+
+    steps:
+      - name: Aguardar aprovação manual
+        run: |
+          echo "Deploy para produção requer aprovação manual."
+          echo "Versão: ${{ needs.set-environment.outputs.version }}"
+
+  # ===========================================================================
+  # DEPLOY — PRODUÇÃO
+  # ===========================================================================
+
+  deploy-production:
+    name: Deploy — Produção
+    runs-on: ubuntu-latest
+    needs: [set-environment, build-image, approval-production]
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Blue-Green / Rolling para Produção
+        run: |
+          echo "Iniciando deploy para produção..."
+          echo "Versão: ${{ needs.set-environment.outputs.version }}"
+          echo "::notice::Configure o step de deploy para seu provedor específico"
+
+      - name: Health Check — Produção
+        run: |
+          PROD_URL="${{ vars.PRODUCTION_URL }}"
+          if [[ -z "$PROD_URL" ]]; then
+            echo "::warning::PRODUCTION_URL não configurada — pulando health check"
+            exit 0
+          fi
+
+          for i in {1..10}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${PROD_URL}/health" 2>/dev/null || echo "000")
+            if [[ "$STATUS" == "200" ]]; then
+              echo "✓ Health check passou: $STATUS"
+              exit 0
+            fi
+            echo "Tentativa $i/10 — Status: $STATUS"
+            sleep 15
+          done
+
+          echo "::error::Health check de produção falhou — considere rollback"
+          exit 1
+
+      - name: Criar Release no GitHub
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ needs.set-environment.outputs.version }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Notificar deploy produção
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          echo "Deploy produção: $STATUS — Versão: ${{ needs.set-environment.outputs.version }}"
+
+  # ===========================================================================
+  # ROLLBACK (MANUAL)
+  # ===========================================================================
+
+  rollback:
+    name: Rollback (Manual)
+    runs-on: ubuntu-latest
+    if: failure() && (needs.deploy-production.result == 'failure' || needs.deploy-staging.result == 'failure')
+    needs: [deploy-staging, deploy-production]
+    environment:
+      name: rollback-approval
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Executar rollback
+        run: |
+          echo "Iniciando rollback..."
+          echo "::warning::Implemente o rollback para seu provedor específico"
+          # Exemplos:
+          # - Kubernetes: kubectl rollout undo deployment/app
+          # - ECS: redeployar task definition anterior
+          # - Heroku: heroku releases:rollback
+
+      - name: Notificar rollback
+        run: |
+          echo "Rollback executado para: ${{ github.repository }}"

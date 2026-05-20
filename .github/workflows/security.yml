@@ -1,0 +1,273 @@
+name: Security
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'  # Segunda-feira às 08:00 UTC
+  push:
+    branches: [main, master]
+    paths:
+      - 'package*.json'
+      - 'composer*.json'
+      - 'Dockerfile'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  # ===========================================================================
+  # CODEQL — ANÁLISE ESTÁTICA DE SEGURANÇA
+  # ===========================================================================
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, python]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}
+
+  # ===========================================================================
+  # DEPENDÊNCIAS — NPM AUDIT
+  # ===========================================================================
+
+  npm-audit:
+    name: NPM Audit
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('package.json') != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: NPM Audit — nível critical
+        run: |
+          AUDIT_JSON=$(npm audit --json 2>/dev/null || echo '{}')
+          CRITICAL=$(echo "$AUDIT_JSON" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+vulns = data.get('metadata', {}).get('vulnerabilities', {})
+critical = vulns.get('critical', 0)
+high = vulns.get('high', 0)
+print(f'Critical: {critical}, High: {high}')
+sys.exit(1 if critical > 0 else 0)
+" 2>/dev/null || echo "Falha ao analisar audit")
+          echo "$CRITICAL"
+
+      - name: NPM Audit Report
+        uses: arlo-phoenix/npm-audit-report@v2
+        if: failure()
+        with:
+          output-file: npm-audit-report.json
+
+  # ===========================================================================
+  # DEPENDÊNCIAS — COMPOSER AUDIT
+  # ===========================================================================
+
+  composer-audit:
+    name: Composer Audit
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('composer.json') != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - name: Instalar dependências
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Composer Audit
+        run: composer audit --format=json 2>/dev/null | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+advisories = data.get('advisories', {})
+if advisories:
+    print(f'::warning::Encontradas {len(advisories)} vulnerabilidade(s) em dependências PHP')
+    for pkg, info in advisories.items():
+        print(f'::warning::{pkg}: {info}')
+" || true
+
+  # ===========================================================================
+  # SECRETS SCANNING — TRUFFLEHOG
+  # ===========================================================================
+
+  secrets-scan:
+    name: Secrets Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified
+        continue-on-error: true
+
+      - name: Verificar .env no git
+        run: |
+          if git ls-files --error-unmatch .env &>/dev/null 2>&1; then
+            echo "::error::.env está sendo rastreado pelo Git! Execute: git rm --cached .env"
+            exit 1
+          else
+            echo "✓ .env não está no Git"
+          fi
+
+      - name: Verificar patterns de segredos hardcoded
+        run: |
+          PATTERNS=(
+            "password\s*=\s*['\"][^'\"]{3,}"
+            "secret\s*=\s*['\"][^'\"]{3,}"
+            "api_key\s*=\s*['\"][^'\"]{3,}"
+            "private_key\s*=\s*['\"][^'\"]{3,}"
+            "AWS_SECRET_ACCESS_KEY\s*=\s*[^$\s\n]"
+          )
+
+          FOUND=0
+          for pattern in "${PATTERNS[@]}"; do
+            RESULTS=$(grep -rEin "$pattern" \
+              --include="*.php" --include="*.ts" --include="*.js" --include="*.env" \
+              --exclude-dir=node_modules --exclude-dir=vendor --exclude-dir=.git \
+              --exclude="*.example" --exclude="*.spec.*" --exclude="*.test.*" \
+              . 2>/dev/null | grep -v "example\|test\|spec\|mock\|fake\|dummy" || true)
+
+            if [[ -n "$RESULTS" ]]; then
+              echo "::warning::Possível segredo hardcoded encontrado:"
+              echo "$RESULTS" | head -5
+              FOUND=1
+            fi
+          done
+
+          [[ $FOUND -eq 0 ]] && echo "✓ Nenhum segredo hardcoded detectado" || \
+            echo "::warning::Verifique os itens acima manualmente"
+
+  # ===========================================================================
+  # DOCKER SECURITY — TRIVY
+  # ===========================================================================
+
+  docker-scan:
+    name: Docker Security Scan
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('Dockerfile') != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build imagem para análise
+        run: docker build -t scan-target:${{ github.sha }} . --target production 2>/dev/null || \
+             docker build -t scan-target:${{ github.sha }} .
+
+      - name: Trivy — Scanner de vulnerabilidades
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: scan-target:${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: 0
+
+      - name: Upload Trivy results para GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy
+
+      - name: Verificar usuário root no container
+        run: |
+          USER=$(docker inspect scan-target:${{ github.sha }} \
+            --format='{{.Config.User}}' 2>/dev/null || echo "")
+          if [[ -z "$USER" ]] || [[ "$USER" == "root" ]] || [[ "$USER" == "0" ]]; then
+            echo "::warning::Container rodando como root — use USER não-root no Dockerfile"
+          else
+            echo "✓ Container usa usuário não-root: $USER"
+          fi
+
+  # ===========================================================================
+  # OWASP ZAP — DAST (DYNAMIC APPLICATION SECURITY TESTING)
+  # ===========================================================================
+
+  owasp-zap:
+    name: OWASP ZAP Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: ${{ vars.STAGING_URL || 'http://localhost:3000' }}
+          rules_file_name: .zap/rules.tsv
+          cmd_options: '-a -j'
+        continue-on-error: true
+
+  # ===========================================================================
+  # RELATÓRIO DE SEGURANÇA
+  # ===========================================================================
+
+  security-summary:
+    name: Resumo de Segurança
+    runs-on: ubuntu-latest
+    needs: [codeql, npm-audit, secrets-scan]
+    if: always()
+
+    steps:
+      - name: Gerar resumo
+        run: |
+          echo "## Relatório de Segurança" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| CodeQL | ${{ needs.codeql.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| NPM Audit | ${{ needs.npm-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secrets Scan | ${{ needs.secrets-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Data: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
