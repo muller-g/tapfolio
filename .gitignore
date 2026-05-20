@@ -5,6 +5,7 @@
 
 # -----------------------------------------------------------------------------
 # Ambiente e segredos (NUNCA commitar)
+# Os .env ficam dentro de cada serviço: backend/.env e frontend/.env.local
 # -----------------------------------------------------------------------------
 .env
 .env.local
@@ -14,6 +15,9 @@
 *.pem
 *.key
 *.crt
+
+# Raiz — apenas se existir um .env de conveniência local
+/.env
 
 # -----------------------------------------------------------------------------
 # Laravel (backend/)

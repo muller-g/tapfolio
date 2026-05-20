@@ -108,14 +108,15 @@ typecheck:
 ## Configura o projeto do zero (primeira execução)
 setup:
 	@echo "Configurando TapFolio..."
-	@cp -n .env.example .env || true
-	@echo "Arquivo .env criado. Edite as variáveis antes de continuar."
+	@cp -n backend/.env.example backend/.env || true
+	@cp -n frontend/.env.example frontend/.env.local || true
+	@echo "Arquivos .env criados. Edite backend/.env e frontend/.env.local antes de continuar."
 	@$(MAKE) build
 	@$(MAKE) up
 	@$(MAKE) key-generate
 	@$(MAKE) migrate-fresh
 	@echo "✅ TapFolio configurado com sucesso!"
-	@echo "   Backend: http://localhost:8000"
-	@echo "   Frontend: http://localhost:3000"
+	@echo "   Backend:       http://localhost:8000"
+	@echo "   Frontend:      http://localhost:3000"
 	@echo "   MinIO Console: http://localhost:9001"
-	@echo "   Mailpit: http://localhost:8025"
+	@echo "   Mailpit:       http://localhost:8025"

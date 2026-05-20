@@ -8,9 +8,7 @@ services:
     volumes:
       - ./backend:/var/www/html
       - /var/www/html/vendor
-    environment:
-      APP_ENV: local
-      APP_DEBUG: "true"
+    env_file: ./backend/.env
     ports:
       - "8000:8000"
 
@@ -21,8 +19,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
-    environment:
-      NODE_ENV: development
+    env_file: ./frontend/.env.local
     ports:
       - "3000:3000"
     command: npm run dev
