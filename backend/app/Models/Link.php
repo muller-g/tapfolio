@@ -18,6 +18,7 @@ class Link extends Model
         'url',
         'is_active',
         'sort_order',
+        'appearance',
     ];
 
     protected function casts(): array
@@ -25,6 +26,7 @@ class Link extends Model
         return [
             'is_active'  => 'boolean',
             'sort_order' => 'integer',
+            'appearance' => 'array',
         ];
     }
 

@@ -35,7 +35,19 @@
       "Bash(jq:*)",
       "Bash(sed:*)",
       "Bash(awk:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(npm run dev -- --port 3001 &> /tmp/nextjs.log & *)",
+      "Bash(find /usr /usr/local /opt -name \"playwright\" -type f 2>/dev/null | head -5 *)",
+      "Read(//usr/**)",
+      "Read(//home/muller/.cache/**)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/tmp/pw-browsers npx playwright install chromium)",
+      "Bash(mkdir -p \"/data/projects/Study/tapfolio/frontend/app/\\(dashboard\\)/dashboard/links/[id]/appearance\")",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/tmp/pw-browsers node /tmp/verify2.mjs)",
+      "Bash(mkdir -p /data/projects/Study/tapfolio/frontend/app/\\\\[username\\\\])",
+      "Bash(python3 -c \"import sys,json; mounts=json.load\\(sys.stdin\\); [print\\(m['Type'], m.get\\('Source',''\\), m.get\\('Destination',''\\)\\) for m in mounts]\")",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); mounts=data[0].get\\('Mounts',[]\\); [print\\(m\\) for m in mounts]\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d, indent=2\\)\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('success'\\), d.get\\('message',''\\)\\)\")"
     ],
     "deny": [
       "Bash(rm -rf /*)",
@@ -43,11 +55,11 @@
       "Bash(chmod 777:*)",
       "Bash(curl * | bash:*)",
       "Bash(wget * | bash:*)"
+    ],
+    "additionalDirectories": [
+      "/tmp",
+      "/data/projects/Study/tapfolio/frontend/app/(dashboard)/dashboard/links/[id]",
+      "/data/projects/Study/tapfolio/frontend/app"
     ]
-  },
-  "hooks": {
-    "preToolCall": [],
-    "postToolCall": [],
-    "onError": []
   }
 }
