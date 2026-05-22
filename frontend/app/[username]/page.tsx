@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { ProfileService } from "@/services/profile.service";
+import { TrackService } from "@/services/track.service";
 import type { PublicUser, PublicLink } from "@/types/profile";
 import type { GlobalAppearance, LinkAppearance, ButtonStyle } from "@/types/appearance";
 
@@ -202,11 +203,13 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         const raw = res.data.appearance;
         const globalAppearance =
           raw && Object.keys(raw).length > 0 ? (raw as unknown as GlobalAppearance) : null;
-        setState({
-          status: "ready",
-          user: res.data.user,
-          globalAppearance,
-          links: res.data.links,
+        const links = res.data.links;
+        setState({ status: "ready", user: res.data.user, globalAppearance, links });
+
+        TrackService.track({
+          username,
+          event_type: "view",
+          link_id: links[0]?.id,
         });
       })
       .catch((err: Error) => {
@@ -278,6 +281,15 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 href={btn.href}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() =>
+                  TrackService.track({
+                    username,
+                    event_type: "click",
+                    link_id: activeLink?.id,
+                    button_key: String(btn.id),
+                    button_type: "sublink",
+                  })
+                }
                 className="block w-full rounded-xl px-5 py-3.5 text-center text-sm font-semibold transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                 style={bStyle}
               >
@@ -300,6 +312,15 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={meta.label}
+                  onClick={() =>
+                    TrackService.track({
+                      username,
+                      event_type: "click",
+                      link_id: activeLink?.id,
+                      button_key: key,
+                      button_type: "social",
+                    })
+                  }
                   className="transition-opacity hover:opacity-70"
                   style={{ color: r.subColor }}
                 >

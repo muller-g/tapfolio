@@ -31,6 +31,15 @@ const navItems: NavItem[] = [
     ),
   },
   {
+    href: "/dashboard/metrics",
+    label: "Métricas",
+    icon: (
+      <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+      </svg>
+    ),
+  },
+  {
     href: "/dashboard/settings",
     label: "Configurações",
     icon: (
@@ -56,13 +65,13 @@ export default function Sidebar({ user }: SidebarProps) {
   }
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-zinc-800 bg-zinc-950">
       {/* Brand */}
-      <div className="flex h-16 items-center gap-2 border-b border-zinc-200 px-6 dark:border-zinc-800">
-        <div className="flex size-7 items-center justify-center rounded-lg bg-black dark:bg-white">
-          <span className="text-xs font-bold text-white dark:text-black">T</span>
+      <div className="flex h-16 items-center gap-2 border-b border-zinc-800 px-6">
+        <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-700">
+          <span className="text-xs font-bold text-white">T</span>
         </div>
-        <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">
+        <span className="text-sm font-semibold tracking-tight text-white">
           TapFolio
         </span>
       </div>
@@ -79,8 +88,8 @@ export default function Sidebar({ user }: SidebarProps) {
                   aria-current={isActive ? "page" : undefined}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white"
-                      : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-white"
+                      ? "bg-zinc-800 text-white"
+                      : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
                   }`}
                 >
                   {item.icon}
@@ -93,12 +102,12 @@ export default function Sidebar({ user }: SidebarProps) {
 
         {/* View public profile */}
         {user && (
-          <div className="mt-6 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+          <div className="mt-6 border-t border-zinc-800 pt-4">
             <a
               href={`/${user.username}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-white"
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-white"
             >
               <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -110,16 +119,16 @@ export default function Sidebar({ user }: SidebarProps) {
       </nav>
 
       {/* User info + logout */}
-      <div className="border-t border-zinc-200 p-3 dark:border-zinc-800">
+      <div className="border-t border-zinc-800 p-3">
         <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-xs font-semibold text-zinc-200">
             {user?.name.charAt(0).toUpperCase() ?? "?"}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-zinc-900 dark:text-white">
+            <p className="truncate text-sm font-medium text-white">
               {user?.name ?? "Carregando..."}
             </p>
-            <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="truncate text-xs text-zinc-400">
               @{user?.username ?? ""}
             </p>
           </div>
@@ -127,7 +136,7 @@ export default function Sidebar({ user }: SidebarProps) {
             onClick={handleLogout}
             aria-label="Sair da conta"
             title="Sair"
-            className="shrink-0 rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+            className="shrink-0 rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25" />

@@ -122,7 +122,7 @@ export default function RegisterForm() {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full rounded-full bg-black py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+        className="w-full rounded-full bg-zinc-800 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isLoading ? "Criando conta..." : "Criar conta"}
       </button>
@@ -147,7 +147,7 @@ function Field({ label, id, name, type, value, onChange, errors, autoComplete, h
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+      <label htmlFor={id} className="mb-1 block text-sm font-medium text-zinc-700">
         {label}
       </label>
       <input
@@ -159,10 +159,10 @@ function Field({ label, id, name, type, value, onChange, errors, autoComplete, h
         autoComplete={autoComplete}
         aria-describedby={hasError ? `${id}-error` : hint ? `${id}-hint` : undefined}
         aria-invalid={hasError}
-        className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition-colors focus:ring-2 dark:bg-zinc-900 dark:text-white ${
+        className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:ring-2 ${
           hasError
-            ? "border-red-500 focus:ring-red-300"
-            : "border-zinc-300 focus:border-zinc-500 focus:ring-zinc-200 dark:border-zinc-700 dark:focus:border-zinc-500"
+            ? "border-red-400 focus:ring-red-200"
+            : "border-zinc-200 focus:border-zinc-400 focus:ring-zinc-100"
         }`}
       />
       {hint && !hasError && (

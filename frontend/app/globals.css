@@ -1,23 +1,34 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Dark mode desativado — só ativa com class="dark" no HTML, que nunca é adicionado */
+@variant dark (&:is(.dark *));
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+/*
+  Pastel lavender palette — overrides Tailwind's zinc scale globally.
+  All existing components using zinc-* classes pick this up automatically.
+*/
+@theme {
+  --color-zinc-50:  #f8f5ff;
+  --color-zinc-100: #ede9ff;
+  --color-zinc-200: #ddd5ff;
+  --color-zinc-300: #c4b5fd;
+  --color-zinc-400: #a68ef6;
+  --color-zinc-500: #8a6ee8;
+  --color-zinc-600: #7054d0;
+  --color-zinc-700: #5940b8;
+  --color-zinc-800: #442fa0;
+  --color-zinc-900: #302080;
+  --color-zinc-950: #1c1258;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #f8f5ff;
+  --foreground: #302080;
 }
+
 
 body {
   background: var(--background);

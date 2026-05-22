@@ -16,6 +16,8 @@ class LinkEvent extends Model
         'ip_address',
         'user_agent',
         'referer',
+        'button_key',
+        'button_type',
         'created_at',
     ];
 

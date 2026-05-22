@@ -51,10 +51,10 @@ export default function LoginForm() {
   return (
     <div className="flex w-full flex-col">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
           Bem-vindo de volta
         </h1>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-2 text-sm text-zinc-500">
           Entre na sua conta para acessar seus links.
         </p>
       </div>
@@ -69,7 +69,7 @@ export default function LoginForm() {
         <div>
           <label
             htmlFor="email"
-            className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+            className="mb-1 block text-sm font-medium text-zinc-700"
           >
             E-mail
           </label>
@@ -82,10 +82,10 @@ export default function LoginForm() {
             autoComplete="email"
             aria-describedby={errors.email ? "email-error" : undefined}
             aria-invalid={Boolean(errors.email)}
-            className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition-colors focus:ring-2 dark:bg-zinc-900 dark:text-white ${
+            className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-zinc-700 outline-none transition-colors focus:ring-2 ${
               errors.email
-                ? "border-red-500 focus:ring-red-300"
-                : "border-zinc-300 focus:border-zinc-500 focus:ring-zinc-200 dark:border-zinc-700 dark:focus:border-zinc-500"
+                ? "border-red-400 focus:ring-red-200"
+                : "border-zinc-200 focus:border-zinc-400 focus:ring-zinc-100"
             }`}
           />
           {errors.email && (
@@ -99,7 +99,7 @@ export default function LoginForm() {
           <div className="mb-1 flex items-center justify-between">
             <label
               htmlFor="password"
-              className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              className="text-sm font-medium text-zinc-700"
             >
               Senha
             </label>
@@ -119,10 +119,10 @@ export default function LoginForm() {
             autoComplete="current-password"
             aria-describedby={errors.password ? "password-error" : undefined}
             aria-invalid={Boolean(errors.password)}
-            className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition-colors focus:ring-2 dark:bg-zinc-900 dark:text-white ${
+            className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-zinc-700 outline-none transition-colors focus:ring-2 ${
               errors.password
-                ? "border-red-500 focus:ring-red-300"
-                : "border-zinc-300 focus:border-zinc-500 focus:ring-zinc-200 dark:border-zinc-700 dark:focus:border-zinc-500"
+                ? "border-red-400 focus:ring-red-200"
+                : "border-zinc-200 focus:border-zinc-400 focus:ring-zinc-100"
             }`}
           />
           {errors.password && (
@@ -135,17 +135,17 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full rounded-full bg-black py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+          className="w-full rounded-full bg-zinc-800 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? "Entrando..." : "Entrar"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="mt-6 text-center text-sm text-zinc-500">
         Não tem uma conta?{" "}
         <Link
           href="/register"
-          className="font-medium text-zinc-900 underline-offset-4 hover:underline dark:text-white"
+          className="font-medium text-zinc-900 underline-offset-4 hover:underline"
         >
           Criar conta
         </Link>

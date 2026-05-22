@@ -10,13 +10,14 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen">
       {/* Lado esquerdo — imagem */}
-      <div className="hidden w-1/2 lg:block">
-        {/* Placeholder: substituir pelo componente de imagem real */}
-        <div className="h-full w-full bg-zinc-100 dark:bg-zinc-900" aria-hidden="true" />
-      </div>
+      <div
+        className="hidden w-1/2 bg-cover bg-center lg:block"
+        style={{ backgroundImage: "url('/bg.png')" }}
+        aria-hidden="true"
+      />
 
       {/* Lado direito — formulário */}
-      <div className="flex w-full flex-col items-center justify-center px-8 lg:w-1/2">
+      <div className="flex w-full flex-col items-center justify-center bg-zinc-50 px-8 lg:w-1/2">
         <div className="w-full max-w-sm">
           <LoginForm />
         </div>
