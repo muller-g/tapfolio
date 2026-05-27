@@ -28,6 +28,9 @@ interface AppearanceState {
   buttonStyle: ButtonStyle;
   buttonAccent: string;
   buttonTextColor: string;
+  bioTextColor: string;
+  usernameTextColor: string;
+  socialIconColor: string;
   social: Record<string, string>;
 }
 
@@ -112,6 +115,9 @@ const INITIAL: AppearanceState = {
   buttonStyle: "filled",
   buttonAccent: "#18181b",
   buttonTextColor: "#ffffff",
+  bioTextColor: "",
+  usernameTextColor: "",
+  socialIconColor: "",
   social: {},
 };
 
@@ -246,13 +252,13 @@ function MobilePreview({ state, user, links }: PreviewProps) {
                   </div>
                 )}
               </div>
-              <p className="text-sm font-bold" style={{ color: theme.text }}>
+              <p className="text-sm font-bold" style={{ color: state.usernameTextColor || theme.text }}>
                 @{user?.username ?? "username"}
               </p>
               {state.bio && (
                 <p
                   className="max-w-[200px] text-center text-[11px] leading-relaxed"
-                  style={{ color: theme.sub }}
+                  style={{ color: state.bioTextColor || theme.sub }}
                 >
                   {state.bio}
                 </p>
@@ -276,7 +282,7 @@ function MobilePreview({ state, user, links }: PreviewProps) {
             {activeSocials.length > 0 && (
               <div className="mt-5 flex justify-center gap-4 px-4">
                 {activeSocials.slice(0, 6).map((p) => (
-                  <div key={p.key} style={{ color: theme.sub, width: 20, height: 20 }}>
+                  <div key={p.key} style={{ color: state.socialIconColor || theme.sub, width: 20, height: 20 }}>
                     {p.icon}
                   </div>
                 ))}
@@ -396,6 +402,58 @@ export default function AppearancePage() {
                     className="w-full resize-none rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-500 dark:focus:border-white dark:focus:ring-zinc-700"
                   />
                   <p className="mt-1 text-right text-xs text-zinc-400">{state.bio.length}/160</p>
+                </div>
+                <div>
+                  <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Cor do @username</p>
+                  <div className="flex items-center gap-3">
+                    <div className="relative size-10 overflow-hidden rounded-lg border border-zinc-300 dark:border-zinc-700">
+                      <input
+                        type="color"
+                        value={state.usernameTextColor || theme.text}
+                        onChange={(e) => set("usernameTextColor", e.target.value)}
+                        className="absolute -inset-1 size-[calc(100%+8px)] cursor-pointer border-0 bg-transparent p-0"
+                        aria-label="Escolher cor do @username"
+                      />
+                    </div>
+                    <span className="font-mono text-sm text-zinc-500 dark:text-zinc-400">
+                      {state.usernameTextColor || theme.text}
+                    </span>
+                    {state.usernameTextColor && (
+                      <button
+                        type="button"
+                        onClick={() => set("usernameTextColor", "")}
+                        className="rounded-md px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                      >
+                        Auto
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Cor do texto da bio</p>
+                  <div className="flex items-center gap-3">
+                    <div className="relative size-10 overflow-hidden rounded-lg border border-zinc-300 dark:border-zinc-700">
+                      <input
+                        type="color"
+                        value={state.bioTextColor || theme.sub}
+                        onChange={(e) => set("bioTextColor", e.target.value)}
+                        className="absolute -inset-1 size-[calc(100%+8px)] cursor-pointer border-0 bg-transparent p-0"
+                        aria-label="Escolher cor do texto da bio"
+                      />
+                    </div>
+                    <span className="font-mono text-sm text-zinc-500 dark:text-zinc-400">
+                      {state.bioTextColor || theme.sub}
+                    </span>
+                    {state.bioTextColor && (
+                      <button
+                        type="button"
+                        onClick={() => set("bioTextColor", "")}
+                        className="rounded-md px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                      >
+                        Auto
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </section>
@@ -526,6 +584,32 @@ export default function AppearancePage() {
               >
                 Redes Sociais
               </h2>
+              <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Cor dos ícones</p>
+                <div className="flex items-center gap-3">
+                  <div className="relative size-10 overflow-hidden rounded-lg border border-zinc-300 dark:border-zinc-700">
+                    <input
+                      type="color"
+                      value={state.socialIconColor || theme.sub}
+                      onChange={(e) => set("socialIconColor", e.target.value)}
+                      className="absolute -inset-1 size-[calc(100%+8px)] cursor-pointer border-0 bg-transparent p-0"
+                      aria-label="Escolher cor dos ícones sociais"
+                    />
+                  </div>
+                  <span className="font-mono text-sm text-zinc-500 dark:text-zinc-400">
+                    {state.socialIconColor || theme.sub}
+                  </span>
+                  {state.socialIconColor && (
+                    <button
+                      type="button"
+                      onClick={() => set("socialIconColor", "")}
+                      className="rounded-md px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                    >
+                      Auto
+                    </button>
+                  )}
+                </div>
+              </div>
               <div className="divide-y divide-zinc-100 overflow-hidden rounded-xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
                 {SOCIAL_PLATFORMS.map((platform) => (
                   <div key={platform.key} className="flex items-center gap-3 px-4 py-3">

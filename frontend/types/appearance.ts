@@ -7,6 +7,9 @@ export interface GlobalAppearance {
   buttonStyle: ButtonStyle;
   buttonAccent: string;
   buttonTextColor: string;
+  bioTextColor?: string;
+  usernameTextColor?: string;
+  socialIconColor?: string;
   social: Record<string, string>;
 }
 
@@ -24,6 +27,9 @@ export interface LinkAppearance {
   buttonStyle: ButtonStyle;
   buttonAccent: string;
   buttonTextColor: string;
+  bioTextColor?: string;
+  usernameTextColor?: string;
+  socialIconColor?: string;
   social: Record<string, string>;
   subLinks: SubLink[];
 }

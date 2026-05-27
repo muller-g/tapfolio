@@ -7,6 +7,11 @@ use App\Models\User;
 
 class LinkPolicy
 {
+    public function view(User $user, Link $link): bool
+    {
+        return $user->id === $link->user_id;
+    }
+
     public function update(User $user, Link $link): bool
     {
         return $user->id === $link->user_id;

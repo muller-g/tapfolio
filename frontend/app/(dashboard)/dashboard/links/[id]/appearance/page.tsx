@@ -27,6 +27,9 @@ interface LinkAppearance {
   buttonStyle: ButtonStyle;
   buttonAccent: string;
   buttonTextColor: string;
+  bioTextColor: string;
+  usernameTextColor: string;
+  socialIconColor: string;
   social: Record<string, string>;
   subLinks: SubLink[];
 }
@@ -74,6 +77,9 @@ const INITIAL: LinkAppearance = {
   buttonStyle: "filled",
   buttonAccent: "#18181b",
   buttonTextColor: "#ffffff",
+  bioTextColor: "",
+  usernameTextColor: "",
+  socialIconColor: "",
   social: {},
   subLinks: [],
 };
@@ -335,11 +341,11 @@ function MobilePreview({ a, user }: PreviewProps) {
                   </div>
                 )}
               </div>
-              <p className="text-sm font-bold" style={{ color: a.bgImageDataUrl ? "#fff" : textColor }}>
+              <p className="text-sm font-bold" style={{ color: a.usernameTextColor || (a.bgImageDataUrl ? "#fff" : textColor) }}>
                 @{user?.username ?? "username"}
               </p>
               {a.bio && (
-                <p className="max-w-[200px] text-center text-[11px] leading-relaxed" style={{ color: a.bgImageDataUrl ? "rgba(255,255,255,0.8)" : subColor, whiteSpace: "pre-wrap" }}>
+                <p className="max-w-[200px] text-center text-[11px] leading-relaxed" style={{ color: a.bioTextColor || (a.bgImageDataUrl ? "rgba(255,255,255,0.8)" : subColor), whiteSpace: "pre-wrap" }}>
                   {a.bio}
                 </p>
               )}
@@ -364,7 +370,7 @@ function MobilePreview({ a, user }: PreviewProps) {
             {activeSocials.length > 0 && (
               <div className="mt-5 flex justify-center gap-4 px-4">
                 {activeSocials.slice(0, 6).map((p) => (
-                  <div key={p.key} style={{ color: a.bgImageDataUrl ? "#fff" : subColor }}>
+                  <div key={p.key} style={{ color: a.socialIconColor || (a.bgImageDataUrl ? "#fff" : subColor) }}>
                     {p.icon}
                   </div>
                 ))}
@@ -502,6 +508,58 @@ export default function LinkAppearancePage({ params }: { params: Promise<{ id: s
                   />
                   <p className="mt-0.5 text-right text-xs text-zinc-400">{a.bio.length}/160</p>
                 </div>
+                <div>
+                  <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Cor do @username</p>
+                  <div className="flex items-center gap-3">
+                    <div className="relative size-10 overflow-hidden rounded-lg border border-zinc-300 dark:border-zinc-700">
+                      <input
+                        type="color"
+                        value={a.usernameTextColor || (isLight(a.bgColor) ? "#18181b" : "#fafafa")}
+                        onChange={(e) => set("usernameTextColor", e.target.value)}
+                        className="absolute -inset-1 size-[calc(100%+8px)] cursor-pointer border-0 bg-transparent p-0"
+                        aria-label="Escolher cor do @username"
+                      />
+                    </div>
+                    <span className="font-mono text-sm text-zinc-500 dark:text-zinc-400">
+                      {a.usernameTextColor || (isLight(a.bgColor) ? "#18181b" : "#fafafa")}
+                    </span>
+                    {a.usernameTextColor && (
+                      <button
+                        type="button"
+                        onClick={() => set("usernameTextColor", "")}
+                        className="rounded-md px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                      >
+                        Auto
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Cor do texto da bio</p>
+                  <div className="flex items-center gap-3">
+                    <div className="relative size-10 overflow-hidden rounded-lg border border-zinc-300 dark:border-zinc-700">
+                      <input
+                        type="color"
+                        value={a.bioTextColor || (isLight(a.bgColor) ? "#71717a" : "#a1a1aa")}
+                        onChange={(e) => set("bioTextColor", e.target.value)}
+                        className="absolute -inset-1 size-[calc(100%+8px)] cursor-pointer border-0 bg-transparent p-0"
+                        aria-label="Escolher cor do texto da bio"
+                      />
+                    </div>
+                    <span className="font-mono text-sm text-zinc-500 dark:text-zinc-400">
+                      {a.bioTextColor || (isLight(a.bgColor) ? "#71717a" : "#a1a1aa")}
+                    </span>
+                    {a.bioTextColor && (
+                      <button
+                        type="button"
+                        onClick={() => set("bioTextColor", "")}
+                        className="rounded-md px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                      >
+                        Auto
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -629,6 +687,32 @@ export default function LinkAppearancePage({ params }: { params: Promise<{ id: s
             {/* ─ Redes Sociais ─ */}
             <section aria-labelledby="s-social">
               <h2 id="s-social" className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Redes Sociais</h2>
+              <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Cor dos ícones</p>
+                <div className="flex items-center gap-3">
+                  <div className="relative size-10 overflow-hidden rounded-lg border border-zinc-300 dark:border-zinc-700">
+                    <input
+                      type="color"
+                      value={a.socialIconColor || (isLight(a.bgColor) ? "#71717a" : "#a1a1aa")}
+                      onChange={(e) => set("socialIconColor", e.target.value)}
+                      className="absolute -inset-1 size-[calc(100%+8px)] cursor-pointer border-0 bg-transparent p-0"
+                      aria-label="Escolher cor dos ícones sociais"
+                    />
+                  </div>
+                  <span className="font-mono text-sm text-zinc-500 dark:text-zinc-400">
+                    {a.socialIconColor || (isLight(a.bgColor) ? "#71717a" : "#a1a1aa")}
+                  </span>
+                  {a.socialIconColor && (
+                    <button
+                      type="button"
+                      onClick={() => set("socialIconColor", "")}
+                      className="rounded-md px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                    >
+                      Auto
+                    </button>
+                  )}
+                </div>
+              </div>
               <div className="divide-y divide-zinc-100 overflow-hidden rounded-xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
                 {SOCIAL_PLATFORMS.map((platform) => (
                   <div key={platform.key} className="flex items-center gap-3 px-4 py-3">

@@ -52,6 +52,9 @@ interface Resolved {
   bg: React.CSSProperties;
   textColor: string;
   subColor: string;
+  bioTextColor: string;
+  usernameTextColor: string;
+  socialIconColor: string;
   bio: string;
   avatarDataUrl: string | null;
   buttonStyle: ButtonStyle;
@@ -93,6 +96,9 @@ function resolve(
   const buttonStyle    = linkA?.buttonStyle ?? global?.buttonStyle ?? "filled";
   const buttonAccent   = linkA?.buttonAccent ?? global?.buttonAccent ?? "#18181b";
   const buttonTextColor = linkA?.buttonTextColor ?? global?.buttonTextColor ?? "#ffffff";
+  const bioTextColor      = linkA?.bioTextColor || global?.bioTextColor || "";
+  const usernameTextColor = linkA?.usernameTextColor || global?.usernameTextColor || "";
+  const socialIconColor   = linkA?.socialIconColor || global?.socialIconColor || "";
   const social         = (linkA?.social && Object.keys(linkA.social).length > 0)
     ? linkA.social
     : (global?.social ?? {});
@@ -101,7 +107,7 @@ function resolve(
   const subLinks = (linkA?.subLinks ?? []).filter((l) => l.title && l.url);
   const buttons  = subLinks.map((l) => ({ id: l.id, label: l.title, href: l.url }));
 
-  return { bg, textColor, subColor, bio, avatarDataUrl, buttonStyle, buttonAccent, buttonTextColor, social, buttons };
+  return { bg, textColor, subColor, bioTextColor, usernameTextColor, socialIconColor, bio, avatarDataUrl, buttonStyle, buttonAccent, buttonTextColor, social, buttons };
 }
 
 // ─── Social Icons ─────────────────────────────────────────────────────────────
@@ -260,13 +266,13 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <h1 className="mt-4 text-lg font-bold" style={{ color: r.textColor }}>
           {user.name}
         </h1>
-        <p className="text-sm" style={{ color: r.subColor }}>@{user.username}</p>
+        <p className="text-sm" style={{ color: r.usernameTextColor || r.subColor }}>@{user.username}</p>
 
         {/* Bio */}
         {r.bio && (
           <p
             className="mt-3 max-w-xs text-center text-sm leading-relaxed"
-            style={{ color: r.subColor }}
+            style={{ color: r.bioTextColor || r.subColor }}
           >
             {r.bio}
           </p>
@@ -322,7 +328,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                     })
                   }
                   className="transition-opacity hover:opacity-70"
-                  style={{ color: r.subColor }}
+                  style={{ color: r.socialIconColor || r.subColor }}
                 >
                   <SocialIcon platform={key} />
                 </a>
